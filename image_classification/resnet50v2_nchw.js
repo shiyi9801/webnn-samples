@@ -21,6 +21,7 @@ export class ResNet50V2Nchw {
       inputShape: [1, 3, 224, 224],
     };
     this.outputShape_ = [1, 1000];
+    this.modelCacheKey_ = "webnn-samples-resnet50";
   }
 
   async buildConv_(input, name, stageName, options = undefined) {
@@ -171,7 +172,15 @@ export class ResNet50V2Nchw {
   }
 
   async build(outputOperand) {
-    this.graph_ = await this.builder_.build({'output': outputOperand});
+    try {
+      console.log("try to load graph...");
+      this.graph_ = await this.context_.loadGraph(this.modelCacheKey_);
+      console.log("load graph succeed!");
+    } catch (e) {
+      console.log("failed to load graph: ", e.message, " try to build graph...");
+      this.graph_ = await this.builder_.build({'output': outputOperand});
+      await this.context_.saveGraph(this.modelCacheKey_, this.graph_);
+    }
   }
 
   // Release the constant tensors of a model

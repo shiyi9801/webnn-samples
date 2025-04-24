@@ -13,6 +13,7 @@ export class MobileNetV2Nchw {
     this.outputTensor_ = null;
     this.dataType_ = dataType;
     this.weightsUrl_ = weightsOrigin();
+    this.modelCacheKey_ = "webnn-samples-mobilenet";
     if (this.dataType_ === 'float32') {
       this.weightsUrl_ += '/test-data/models/mobilenetv2_nchw/weights/';
     } else if (this.dataType_ === 'float16') {
@@ -165,7 +166,15 @@ export class MobileNetV2Nchw {
   }
 
   async build(outputOperand) {
-    this.graph_ = await this.builder_.build({'output': outputOperand});
+    try {
+      console.log("try to load graph...");
+      this.graph_ = await this.context_.loadGraph(this.modelCacheKey_);
+      console.log("load graph succeed!");
+    } catch (e) {
+      console.log("failed to load graph: ", e.message, " try to build graph...");
+      this.graph_ = await this.builder_.build({'output': outputOperand});
+      await this.context_.saveGraph(this.modelCacheKey_, this.graph_);
+    }
   }
 
   async compute(inputBuffer) {
